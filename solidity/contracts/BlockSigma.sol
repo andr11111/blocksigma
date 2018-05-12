@@ -13,14 +13,21 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     address public owner;
     uint256 reserve;
     address bancorConverter;
+    address mainIssuer;
+
+    struct ExerciseInfo {
+        uint256 amount;
+        uint256 timestamp;
+    }
 
     mapping(address => uint256) reserves;
     mapping(address => uint256) issues;
-    mapping(address => uint256) exercises;
+    mapping(address => ExerciseInfo) exercises;
 
 
     event Issued(address indexed to, uint256 amount);
     event Exercised(address indexed who);
+    event Liquidated(address indexed who);
     event MintFinished();
 
     function BlockSigma_EOS_June_Put_20000000000000000(address _baseTokenAddress,
@@ -38,6 +45,7 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
         require(msg.value >= getRequiredReserve().mul(amount));
         reserves[msg.sender] = msg.value;
         issues[msg.sender] = issues[msg.sender].add(amount); // don't agree
+        mainIssuer = msg.sender;
 
         totalSupply = totalSupply.add(amount);
         balances[msg.sender] = balances[msg.sender].add(amount);
@@ -49,12 +57,34 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
         require(block.timestamp < exp);
         uint256 requiredFunds = balances[msg.sender].mul(strike);
         require(msg.value >= requiredFunds);
-        exercises[msg.sender] = balances[msg.sender];
+        exercises[msg.sender] = ExerciseInfo({
+            amount: balances[msg.sender],
+            timestamp: block.timestamp
+        });
         Exercised(msg.sender);
+        return true;
     }
 
-    function deliver() {
-        
+    function deliver(address to) returns (bool) {
+        baseTokenAddress.call(bytes4(sha3("transferFrom(address,address,uint256)")), msg.sender, to, balances[to]);
+        delete balances[to];
+        msg.sender.transfer(exercises[to].amount.mul(strike).add(reserves[msg.sender]));
+        delete exercises[to];
+        delete reserves[msg.sender];
+        return true;
+    }
+
+    function forceLiquidation() returns (bool) {
+        uint256 issuer = mainIssuer; // TODO: temporary hack
+        require(getRequiredReserve().mul(balances[msg.sender]) > reserves[issuer] ||
+            exercises[msg.sender].timestamp < block.timestamp - 86400);
+
+        // Transfer reserve to buyer
+        msg.sender.transfer(reserves[issuer]);
+        delete balances[msg.sender];
+        delete exercises[msg.sender];
+        delete reserves[issuer];
+        Liquidated(msg.sender);
     }
 
     function depositReserve(uint256 amount) public payable returns (bool) {
