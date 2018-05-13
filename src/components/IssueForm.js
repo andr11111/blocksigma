@@ -1,79 +1,85 @@
 import React, { Component } from 'react';
-import {Field, reduxForm} from 'redux-form'
+import { Field, reduxForm } from 'redux-form'
 import RaisedButton from 'material-ui/RaisedButton';
-
-import { contractAPI, web3 } from "../api";
-const API_URL = "http://localhost:7545";
-const ADDRESS = "0x53DE0dbe22F953F849EF7A79f5ca792129414f59";
-const GAS = 1000000;
-const Web3 = require('web3');
+import { connect } from 'react-redux'
 
 
-
-class Home extends Component {
+class IssueForm extends Component {
   constructor(props) {
     super(props);
-    const {handleSubmit, pristine, reset, submitting} = props;
+    console.log("props:", props);
+    const { handleSubmit, pristine, reset, submitting, formState } = props;
     this.handleSubmit = handleSubmit;
-
-    contractAPI(API_URL).then((web3API) => {
-      this.web3API = web3API;
-    }).catch((e) => {
-      console.error("Error:", e.message);
-    });    
+    this.formState = formState;
   };
-
-  async getRequiredReserve() {
-    const result = await this.web3API.issue(10, {
-      from: ADDRESS,
-      value: 15395000000000000, // 0.015395 ETH
-      gas: GAS
-    });
-    console.log("result = ", result);
-  }
 
   render() {
     return (
       <form onSubmit={this.handleSubmit}>
         <div>
-          <label>Contract configuration: <b>EOS May 31 2018 0.02 ETH Call</b></label>
-        </div>      
-        <div>
-          <label>Number of contracts</label>
           <div>
-            <Field
-              name="amount"
-              component="input"
-              type="text"
-              placeholder="Number of contracts"
-            />
+            <label>Contract configuration: <b>EOS May 31 2018 0.02 ETH Call</b></label>
           </div>
-        </div>
-        <br />
-        <div>
-          <label>ETH Reserve</label>
           <div>
-            <Field
-              name="reserve"
-              component="input"
-              type="text"
-              placeholder="ETH Reserve"
-            />
+            <label>Number of contracts</label>
+            <div>
+              <Field
+                name="amount"
+                component="input"
+                type="text"
+                placeholder="Number of contracts"                
+              />
+            </div>
           </div>
-        </div>
-        <br />
-        <div>
-          <RaisedButton type="submit" label="Submit" />
+          <br />
+          <div>
+            <label>ETH reserve</label>
+            <div>
+              <Field
+                name="reserve"
+                component="input"
+                type="text"
+                placeholder="ETH Reserve"
+              />
+            </div>
+          </div>
+          <br />
+          <div>
+            <label>AlphaPoint Ooffer price</label>
+            <div>
+              <Field
+                name="price"
+                component="input"
+                type="text"
+                placeholder="AlphaPoint price"
+              />
+            </div>
+          </div>          
+          <br />
+          <div>
+            <RaisedButton type="submit" label="Submit" />
+          </div>
         </div>
       </form>
-    )
-  }
-}
+        )
+      }
+    }
+    
+    
 
-const mapStateToProps = (state, ownProps) => ({
-  formState: state.form.myForm,  // <== Inject the form store itself
-});
-
-export default reduxForm({
+let Form = reduxForm({
   form: 'issue'
-})(IssueForm)
+})(IssueForm);
+
+Form = connect(
+  (state, ownProps) => ({
+    initialValues: {
+      amount: 10,
+      reserve: 0.015395
+    },
+    formState: state.form.issue
+  }),
+)(Form);
+
+
+export default Form;
