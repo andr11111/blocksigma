@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="19px" height="18px" viewBox="0 0 19 18" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: sketchtool 50 (54983) - http://www.bohemiancoding.com/sketch -->
+    <title>38781221-EC31-48DA-832E-B4FB910421E3</title>
+    <desc>Created with sketchtool.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Buyer-Portfolio-" transform="translate(-120.000000, -75.000000)">
+            <g id="Group-2" transform="translate(117.000000, 72.000000)">
+                <g id="Group-3">
+                    <g id="Portfolio-Icon">
+                        <g id="Bounding_Boxes">
+                            <polygon id="Shape" points="0 0 24 0 24 24 0 24"></polygon>
+                        </g>
+                        <g id="Duotone" transform="translate(3.000000, 3.000000)" fill="#4DA1FF" fill-rule="nonzero">
+                            <g id="Group">
+                                <path d="M10,14 C8.9,14 8,13.1 8,12 L8,6 C8,4.9 8.9,4 10,4 L16,4 L16,2 L2,2 L2,16 L16,16 L16,14 L10,14 Z" id="Shape" opacity="0.3"></path>
+                                <path d="M18,4.28 L18,2 C18,0.9 17.1,0 16,0 L2,0 C0.89,0 0,0.9 0,2 L0,16 C0,17.1 0.89,18 2,18 L16,18 C17.1,18 18,17.1 18,16 L18,13.72 C18.59,13.37 19,12.74 19,12 L19,6 C19,5.26 18.59,4.62 18,4.28 Z M17,6 L17,12 L10,12 L10,6 L17,6 Z M2,16 L2,2 L16,2 L16,4 L10,4 C8.9,4 8,4.9 8,6 L8,12 C8,13.1 8.9,14 10,14 L16,14 L16,16 L2,16 Z" id="Shape"></path>
+                                <circle id="Oval" cx="13" cy="9" r="1.5"></circle>
+                            </g>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

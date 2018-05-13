@@ -1,0 +1,45 @@
+.belowPaO {
+    width: 100%;
+    height: 2.5rem;
+    background: white;
+}
+
+.iconWallet {
+    padding: 0.5rem; 
+    margin-left: 2rem;
+}
+
+.wallet {
+    height: 0.95rem;
+    width: auto;
+}
+
+.portfolioLine {
+    height: 100%;
+    padding: 0.75rem;
+    border-bottom: 2px solid rgb(123,187,255);
+    text-align: center;
+}
+
+.portfolioLineTrans {
+    height: 100%;
+    padding: 0.75rem;
+}
+
+.portfolioLineTrans h6 {
+    font-weight: 500;
+    color: rgb(123,187,255);
+}
+
+.portfolioLine h6 {
+    font-weight: 500;
+    color: rgb(123,187,255);
+}
+
+.btn {
+    font-size: 10px;
+    height: 1.5rem;
+    width: 6rem;
+    margin-left: 3rem;
+    padding: 0;
+}

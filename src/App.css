@@ -1,0 +1,11 @@
+.sigmaTrade {
+  font-family: "Roboto"; 
+  background-color: rgb(245,247,250);
+}
+
+.headerContainer {
+  position: fixed;
+  height: 3rem;
+  width: 100%;
+  padding: 1rem;
+}

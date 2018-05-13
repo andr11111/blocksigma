@@ -1,0 +1,13 @@
+.graphs {
+    display: inline-block;
+    max-height: 15rem;
+    overflow: scroll;
+    padding: 0.25rem;
+    margin-left: 3rem;
+}
+
+.graphs img {
+    margin: 1rem 0rem;
+    width: 100%;
+    height: auto;
+}

@@ -1,0 +1,27 @@
+.header {
+    text-align: center;
+    margin: 1rem;
+}
+
+.logo {
+    text-align: left
+}
+
+img {
+    display: inline-block;
+    height: 3rem;
+    margin-left: 0.5rem;
+
+}
+
+.login {
+    margin: 0.5rem 0rem;
+}
+
+button {
+    display: inline-block;
+    height: 2.15rem;
+    width: 7rem;
+    text-align: right;
+    margin-right: 1rem;
+}

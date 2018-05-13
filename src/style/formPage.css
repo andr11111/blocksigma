@@ -1,0 +1,15 @@
+.formPage {
+    width: 50%;
+    margin: 5rem auto;
+    margin: 5rem auto;
+    background: rgba(255, 245, 235, 0.9);
+    padding: 1rem;
+    border-radius: 5px;
+};
+
+.formPage .btn-light {
+    display: inline-block;
+    margin-left: 20rem;
+    width: 2rem;
+    background: none;   
+}
