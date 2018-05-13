@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-
 import Header from './components/header';
 import Profiles from './components/profiles';
 import TradeFieldAndGraphs from './components/trade/tradeFieldAndGraphs';
@@ -9,6 +8,7 @@ import { contractAPI, web3 } from "./api";
 const API_URL = "http://localhost:7545";
 const ADDRESS = "0x53DE0dbe22F953F849EF7A79f5ca792129414f59";
 const GAS = 1000000;
+const Web3 = require('web3');
 
 class App extends Component {
   constructor(props) {
@@ -49,10 +49,10 @@ handleClose(event) {
   };
 
   testIssue = async () => {
-    console.log("web3 = ", web3);
+    console.log("web3 = ", Web3);
     const result = await this.web3API.issue(10, {
       from: ADDRESS,
-      value: web3.utils.toWei("1", "ether"),
+      value: Web3.utils.toWei("1", "ether"),
       gas: GAS
     });
     console.log("result = ", result);

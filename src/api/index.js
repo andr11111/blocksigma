@@ -15,7 +15,7 @@ const main_artifacts = require('./contracts/BlockSigma');
 const MainContract = contract(main_artifacts);
 
 const contractAPI = function (nodeUrl) {
-  web3.setProvider(new web3.providers.HttpProvider(nodeUrl));
+  web3.setProvider(new Web3.providers.HttpProvider(nodeUrl));
   MainContract.setProvider(web3.currentProvider);
   if (typeof MainContract.currentProvider.sendAsync !== "function") {
     MainContract.currentProvider.sendAsync = function() {
