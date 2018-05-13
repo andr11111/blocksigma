@@ -13,6 +13,7 @@ class App extends Component {
       isPopUp: false
     };
     this.handleButton = this.handleButton.bind(this);
+    this.handleClose = this.handleClose.bind(this);
   };
   
   handleButton(event) {
@@ -27,6 +28,9 @@ handleClose(event) {
   this.setState({
     isPopUp: false
   });
+  var el = document.getElementsByClassName('modal-backdrop')[0];
+  console.log(el);
+  el.remove();
 };
   
   render() {
