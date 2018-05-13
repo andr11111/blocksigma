@@ -7,7 +7,7 @@ contract BancorConverter {
     function getReturn(address _fromToken, address _toToken, uint256 _amount) public view returns (uint256);
 }
 
-contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
+contract BlockSigma is StandardToken {
     using Math for uint256;
 
     address baseTokenAddress;
@@ -34,7 +34,7 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     event Liquidated(address indexed who);
     event MintFinished();
 
-    function BlockSigma_EOS_June_Put_20000000000000000(address _baseTokenAddress,
+    function BlockSigma(address _baseTokenAddress,
         uint256 _strike, uint256 _exp, bool _isPut, uint256 _reserve, address _bancorConverter) public {
         owner = msg.sender;
         totalSupply_ = 0;
@@ -114,7 +114,7 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     }
 
     function getTokenPrice() public view returns (uint256) {
-        uint256 oneEther = 1000000000000000000;
+        /*uint256 oneEther = 1000000000000000000;
         BancorConverter ethToBtnConverter = BancorConverter(0xc6725aE749677f21E4d8f85F41cFB6DE49b9Db29);
         uint256 ethToBtn = bancor.getReturn(0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315,
             0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C,
@@ -125,7 +125,8 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
             baseTokenAddress,
             ethToBtn);
 
-        return oneEther.mul(oneEther).div(btnToEos);
+        return oneEther.mul(oneEther).div(btnToEos);*/
+        return 20539500000000000;
     }
     
 }
