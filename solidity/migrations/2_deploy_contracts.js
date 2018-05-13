@@ -9,6 +9,6 @@ module.exports = function(deployer) {
     var isPut = false;
     var reserve = 1000000000000000;
     var bancorConverterAddress = "0x0d8746c7bfac7494904d4133c550c72b02c7cdbb";
-    deployer.deploy(BlockSigma, EOS.address, strike, expiration, isPut, reserve, bancorConverterAddress);
+    return deployer.deploy(BlockSigma, EOS.address, strike, expiration, isPut, reserve, bancorConverterAddress);
   });
 };
