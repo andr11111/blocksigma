@@ -19,7 +19,7 @@ const BelowPaO = (props) => {
                 <h6>Transaction</h6>
             </div>
             <div className="col col-sm-2">
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" onClick={props.handleButton}>NEW OPTION</button>
+                <button type="button" className="btn btn-primary" data-toggle="modal" data-target="#exampleModal" onClick={props.handleButton}>NEW OPTION</button>
             </div>
         </div> 
     );

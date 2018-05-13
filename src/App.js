@@ -26,8 +26,16 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      isPopUp: false
+      isPopUp: false,
+      writerOptionList: [{
+        token: 1,
+        expire: "10/01/2018",
+        capacity: 100,
+        price: 43.1,
+        type: "call"
+      }]
     };
+
     this.handleButton = this.handleButton.bind(this);
     this.handleClose = this.handleClose.bind(this);
     contractAPI(API_URL).then((web3API) => {
@@ -46,13 +54,18 @@ class App extends Component {
 };
 
 handleClose(event) {
-  console.log(event.target);
   this.setState({
     isPopUp: false
   });
   var el = document.getElementsByClassName('modal-backdrop')[0];
   console.log(el);
   el.remove();
+};
+  
+handleNewIssue(data) {
+  this.setState({
+    writerOptionList: [...this.state.writerOptionList, data]
+  });
 };
 
   testGetTokenPrice = async () => {
@@ -109,9 +122,12 @@ handleClose(event) {
          <div className="container">
             <Form
               handleClose={this.handleClose}
+              handleNewIssue={this.props.handleNewIssue}
             />
             <Header />
-            <Profiles />
+            <Profiles 
+              writerOptionList={this.state.writerOptionList}
+            />
             <TradeFieldAndGraphs />
           </div>
       </main>
@@ -130,6 +146,7 @@ handleClose(event) {
             <Header />
             <Profiles
               handleButton={this.handleButton}
+              writerOptionList={this.state.writerOptionList}
             />
             <TradeFieldAndGraphs />
           </div>

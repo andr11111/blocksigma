@@ -3,9 +3,9 @@ import React from 'react';
 import PictureAndOption from './pictureAndOption';
 import OptionListWriter from './optionList';
 import BelowPaO from './belowPaO';
-import Form from '../form';
 
 const Writer = (props) => {
+    console.log(props);
     return (
         <div className="col col-sm-6 writer">
             <div className="row no-gutters">
@@ -13,7 +13,9 @@ const Writer = (props) => {
                 <BelowPaO 
                     handleButton={props.handleButton}
                 />
-                <OptionListWriter />
+                <OptionListWriter
+                    writerOptionList={props.writerOptionList}
+                />
             </div>
         </div>
     );
