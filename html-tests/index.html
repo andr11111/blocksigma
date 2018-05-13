@@ -1,0 +1,91 @@
+<html>
+<head>hi</head>
+<script type="text/javascript">
+
+		const wsRequestObject = (name, data) => {
+			let requestObject = {
+				m: 0,
+				i: 0,
+				n: name,
+				o: JSON.stringify(data)
+			}
+
+			return JSON.stringify(requestObject);
+		}
+
+		var alphapointSocket = new WebSocket("wss://api_demo.alphapoint.com/wsgateway");
+		
+		alphapointSocket.onmessage = function(event) {
+			const eventData = JSON.parse(event.data);
+			const responseObject = JSON.parse(eventData.o);
+			switch(eventData.n) {
+				case "WebAuthenticateUser": {
+					console.log("auth response");
+					break;
+				}
+				case "GetOpenOrders": {
+					// update UI as needed
+					console.log("total orders: ", responseObject.length);
+					responseObject.forEach(el => {
+						console.log("importand data: ", el.Side, el.Price, el.Quantity);
+					})
+
+					break;
+				}
+				case "SendOrder": {
+					console.log("submitted")
+					// update UI as needed
+					break;
+				}
+				default: {
+					console.log("default, not used");
+				}
+
+			}
+		};
+
+		let loginCreds = {
+			UserName: "blocksigma",
+			Password: "8base"
+		};
+
+
+		alphapointSocket.onopen = function (event) {
+		  alphapointSocket.send(wsRequestObject("WebAuthenticateUser", loginCreds)); 
+		};
+
+	function getOpenOrders() {
+		const getOpenOrdersRequest = {
+			AccountId: 116,
+			OMSId: 1	
+		}
+
+		alphapointSocket.send(wsRequestObject("GetOpenOrders", getOpenOrdersRequest));
+	}
+
+	function submitNewOrder() {
+		const price = 1;
+		const quantity = 4;
+		const submitNewOrderRequest = {
+			AccountId: 116,
+			ClientOrderId: 0,
+			Side: 0,
+			Quantity: quantity,
+			OrderIdOCO: 0,
+			OrderType: 2,
+			InstrumentId: 10,
+			TimeInForce: 0,
+			OMSId: 1,
+			UseDisplayQuantity: false,
+			LimitPrice: price
+		}
+
+		alphapointSocket.send(wsRequestObject("SendOrder", submitNewOrderRequest));
+	}
+</script>
+<body>
+Hello world<br/><br/>
+<a href="javascript:getOpenOrders()">getOpenOrders</a> <br/><br/>
+<a href="javascript:submitNewOrder()">submitNewOrder</a> <br/><br/>
+</body>
+</html>
