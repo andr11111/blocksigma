@@ -5,8 +5,6 @@ import Profiles from './components/profiles';
 import TradeFieldAndGraphs from './components/trade/tradeFieldAndGraphs';
 import Form from './components/form';
 import './App.css';
-import { contractAPI } from "./api/index";
-
 const API_URL = "http://localhost:7545";
 
 class App extends Component {
@@ -15,9 +13,8 @@ class App extends Component {
     this.state = {
       isPopUp: false
     };
-    this.web3API = null;
     this.handleButton = this.handleButton.bind(this);
-    console.log("test1", contractAPI);
+    this.handleClose = this.handleClose.bind(this);
     contractAPI(API_URL).then((web3API) => {
       this.web3API = web3API;
     }).catch((e) => {
@@ -31,14 +28,17 @@ class App extends Component {
     this.setState({
       isPopUp: true
     })
-  };
+};
 
-  handleClose(event) {
-    console.log(event.target);
-    this.setState({
-      isPopUp: false
-    });
-  };
+handleClose(event) {
+  console.log(event.target);
+  this.setState({
+    isPopUp: false
+  });
+  var el = document.getElementsByClassName('modal-backdrop')[0];
+  console.log(el);
+  el.remove();
+};
 
   testGetTokenPrice = async () => {
     console.log("here");
@@ -48,9 +48,9 @@ class App extends Component {
 
   render() {
     if (this.state.isPopUp) {
-      return (
-        <main className="sigmaTrade">
-          <div className="container">
+    return (
+      <main className="sigmaTrade">
+         <div className="container">
             <Form
               handleClose={this.handleClose}
             />
@@ -58,20 +58,20 @@ class App extends Component {
             <Profiles />
             <TradeFieldAndGraphs />
           </div>
-        </main>
-      )
-    } else {
-      return (
-        <main className="sigmaTrade">
-          <div className="container">
-            <button onClick={this.testGetTokenPrice} >Test Clss 1</button>
+      </main>
+    )
+  } else {
+    return (
+      <main className="sigmaTrade">
+         <div className="container">
+           <button onClick={this.testGetTokenPrice} >Test Clss 1</button>
             <Header />
             <Profiles
               handleButton={this.handleButton}
             />
             <TradeFieldAndGraphs />
           </div>
-        </main>
+      </main>
       );
     };
   };

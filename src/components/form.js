@@ -6,23 +6,31 @@ class Form extends Component {
     constructor(props) {
         super(props);
         this.state={
+            token: "",
+            expire: "",
             capacity: "",
-            price: ""
+            price: "",
+
         };
         this.handleFormIssue = this.handleFormIssue.bind(this);
+        this.handleInputs = this.handleInputs.bind(this);
     };
 
 handleFormIssue(event) {
     event.preventDefault();
-    console.log(event);
+    console.log(this.state);
 };
 
 handleInputs(event) {
-  console.log(event.name);
-    switch(event.name) {
-      case "capacity": this.setState({capacity: event.target.value})
+    console.log(event.target.id);
+    switch(event.target.id) {
+      case "inputToken": this.setState({token: event.target.value})
       break;
-      case "price": this.setState({capacity: event.target.value})
+      case "inputExpire": this.setState({expire: event.target.value})
+      break;
+      case "inputCapacity": this.setState({capacity: event.target.value})
+      break;
+      case "inputPrice": this.setState({price: event.target.value})
       break;
       default: 0;
   }  
@@ -32,9 +40,48 @@ render() {
     return (
         <div className="modal fade" id="exampleModal" tabIndex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <form className="formPage" onSubmit={this.handleFormIssue}>
-            <button className="btn btn-light" style={{display: "inline-block", marginLeft: "90%", width: "2rem"}} onClick={props.handleClose}>X</button>
+            <button className="btn btn-light" style={{display: "inline-block", marginLeft: "90%", width: "2rem"}} onClick={this.props.handleClose}>X</button>
                 <div className="form-row">
-                    <div className="form-group col-md-6">
+                    <div className="form-group col-md-12">
+                        <label>Token</label>
+                        <input 
+                            type="token"
+                            value={this.state.token}
+                            className="form-control" 
+                            id="inputToken" 
+                            placeholder="Token" 
+                            onChange={this.handleInputs}
+                        />
+                    </div>
+                </div>
+                <div className="form-row">
+                    <div className="form-group col-md-12">
+                        <label>Expire</label>
+                        <input 
+                            type="expire"
+                            value={this.state.expire}
+                            className="form-control" 
+                            id="inputExpire" 
+                            placeholder="Expire" 
+                            onChange={this.handleInputs}
+                        />
+                    </div>
+                </div>
+                <div className="form-row">
+                    <div className="form-group col-md-12">
+                        <label>Capacity</label>
+                        <input 
+                            type="capacity"
+                            value={this.state.capacity}
+                            className="form-control" 
+                            id="inputCapacity" 
+                            placeholder="Capacity" 
+                            onChange={this.handleInputs}
+                        />
+                    </div>
+                </div>
+                <div className="form-row">
+                    <div className="form-group col-md-12">
                         <label>Price</label>
                         <input 
                             type="price"
@@ -44,36 +91,6 @@ render() {
                             placeholder="Price" 
                             onChange={this.handleInputs}
                         />
-                    </div>
-                </div>
-                <div className="form-group">
-                    <label>Capacity</label>
-                    <input 
-                        type="text"
-                        value={this.state.capacity}
-                        className="form-control" 
-                        id="inputCapacity" 
-                        placeholder="Capacity"
-                        onChange={this.handleInputs}
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Type</label>
-                    <input 
-                        type="text" 
-                        className="form-control" 
-                        id="inputType" 
-                        placeholder="type" 
-                    />
-                </div>
-                <div className="form-row">
-                    <div className="form-group col-md-6">
-                        <label>City</label>
-                        <input type="text" className="form-control" id="inputCity" />
-                    </div>
-                    <div className="form-group col-md-2">
-                        <label>Zip</label>
-                        <input type="text" className="form-control" id="inputZip" />
                     </div>
                 </div>
                 <button type="submit" className="btn btn-primary">Sign in</button>
