@@ -7,6 +7,8 @@ import Form from './components/form';
 import './App.css';
 import { contractAPI, web3 } from "./api";
 const API_URL = "http://localhost:7545";
+const ADDRESS = "0x53DE0dbe22F953F849EF7A79f5ca792129414f59";
+const GAS = 1000000;
 
 class App extends Component {
   constructor(props) {
@@ -42,9 +44,18 @@ handleClose(event) {
 };
 
   testGetTokenPrice = async () => {
-    console.log("here");
     const price = await this.web3API.getTokenPrice();
-    console.log("price = ", price);
+    console.log("price = ", price.toString());
+  };
+
+  testIssue = async () => {
+    console.log("web3 = ", web3);
+    const result = await this.web3API.issue(10, {
+      from: ADDRESS,
+      value: web3.utils.toWei("1", "ether"),
+      gas: GAS
+    });
+    console.log("result = ", result);
   };
 
   render() {
@@ -65,7 +76,8 @@ handleClose(event) {
     return (
       <main className="sigmaTrade">
          <div className="container">
-           <button onClick={this.testGetTokenPrice} >Test Clss 1</button>
+           <button onClick={this.testGetTokenPrice} >Get Token Price</button>
+           <button onClick={this.testIssue} >issue</button>
             <Header />
             <Profiles
               handleButton={this.handleButton}
