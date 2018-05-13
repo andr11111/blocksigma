@@ -1,14 +1,26 @@
 import React, { Component } from 'react';
+import { Provider } from 'react-redux';
+import { createStore, combineReducers } from 'redux'
+import { reducer as reduxFormReducer } from 'redux-form'
 import Header from './components/header';
 import Profiles from './components/profiles';
 import TradeFieldAndGraphs from './components/trade/tradeFieldAndGraphs';
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import Form from './components/form';
+import Home from './components/Home';
 import './App.css';
 import { contractAPI, web3 } from "./api";
 const API_URL = "http://localhost:7545";
 const ADDRESS = "0x53DE0dbe22F953F849EF7A79f5ca792129414f59";
 const GAS = 1000000;
 const Web3 = require('web3');
+
+const reducer = combineReducers({
+  form: reduxFormReducer // mounted under "form"
+})
+const store = (window.devToolsExtension
+  ? window.devToolsExtension()(createStore)
+  : createStore)(reducer)
 
 class App extends Component {
   constructor(props) {
@@ -90,7 +102,7 @@ handleClose(event) {
     console.log("result = ", result);
   };
 
-  render() {
+  /*render() {
     if (this.state.isPopUp) {
     return (
       <main className="sigmaTrade">
@@ -124,7 +136,17 @@ handleClose(event) {
       </main>
       );
     };
-  };
+  };*/
+  render() {
+    return (
+      <Provider store={store}>
+        <MuiThemeProvider>
+          <Home />
+        </MuiThemeProvider>
+      </Provider>
+    )
+  };    
 };
+
 
 export default App;
