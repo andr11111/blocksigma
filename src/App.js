@@ -5,6 +5,8 @@ import Profiles from './components/profiles';
 import TradeFieldAndGraphs from './components/trade/tradeFieldAndGraphs';
 import Form from './components/form';
 import './App.css';
+import { contractAPI, web3 } from "./api";
+const API_URL = "http://localhost:7545";
 
 class App extends Component {
   constructor(props) {
@@ -14,8 +16,14 @@ class App extends Component {
     };
     this.handleButton = this.handleButton.bind(this);
     this.handleClose = this.handleClose.bind(this);
+    contractAPI(API_URL).then((web3API) => {
+      this.web3API = web3API;
+    }).catch((e) => {
+      console.error("Error:", e.message);
+    });
+
   };
-  
+
   handleButton(event) {
     console.log(event.target);
     this.setState({
@@ -32,13 +40,19 @@ handleClose(event) {
   console.log(el);
   el.remove();
 };
-  
+
+  testGetTokenPrice = async () => {
+    console.log("here");
+    const price = await this.web3API.getTokenPrice();
+    console.log("price = ", price);
+  };
+
   render() {
     if (this.state.isPopUp) {
     return (
       <main className="sigmaTrade">
          <div className="container">
-            <Form 
+            <Form
               handleClose={this.handleClose}
             />
             <Header />
@@ -51,8 +65,9 @@ handleClose(event) {
     return (
       <main className="sigmaTrade">
          <div className="container">
+           <button onClick={this.testGetTokenPrice} >Test Clss 1</button>
             <Header />
-            <Profiles 
+            <Profiles
               handleButton={this.handleButton}
             />
             <TradeFieldAndGraphs />
