@@ -19,7 +19,6 @@ const contractAPI = function (nodeUrl) {
     };
   }
 
-
   return MainContract.deployed();
 };
 
