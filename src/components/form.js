@@ -10,6 +10,7 @@ class Form extends Component {
             expire: "",
             capacity: "",
             price: "",
+            type: ""
 
         };
         this.handleFormIssue = this.handleFormIssue.bind(this);
@@ -18,7 +19,9 @@ class Form extends Component {
 
 handleFormIssue(event) {
     event.preventDefault();
+    this.props.handleClose();
     console.log(this.state);
+
 };
 
 handleInputs(event) {
@@ -31,6 +34,8 @@ handleInputs(event) {
       case "inputCapacity": this.setState({capacity: event.target.value})
       break;
       case "inputPrice": this.setState({price: event.target.value})
+      break;
+      case "inputType": this.setState({type: event.target.value})
       break;
       default: 0;
   }  
@@ -89,6 +94,19 @@ render() {
                             className="form-control" 
                             id="inputPrice" 
                             placeholder="Price" 
+                            onChange={this.handleInputs}
+                        />
+                    </div>
+                </div>
+                <div className="form-row">
+                    <div className="form-group col-md-12">
+                        <label>Type</label>
+                        <input 
+                            type="price"
+                            value={this.state.type}
+                            className="form-control" 
+                            id="inputType" 
+                            placeholder="Type" 
                             onChange={this.handleInputs}
                         />
                     </div>
