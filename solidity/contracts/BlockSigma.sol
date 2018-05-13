@@ -4,8 +4,7 @@ import "zeppelin-solidity/contracts/math/Math.sol";
 
 contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     using Math for uint256;
-
-    uint256 totalSupply = 0;
+    
     address baseTokenAddress;
     uint256 strike;
     uint256 exp;
@@ -33,6 +32,7 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     function BlockSigma_EOS_June_Put_20000000000000000(address _baseTokenAddress,
         uint256 _strike, uint256 _exp, bool _isPut, uint256 _reserve, address _bancorConverter) public {
         owner = msg.sender;
+        totalSupply_ = 0;
         baseTokenAddress = _baseTokenAddress;
         strike = _strike;
         exp = _exp;
@@ -47,7 +47,7 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
         issues[msg.sender] = issues[msg.sender].add(amount); // don't agree
         mainIssuer = msg.sender;
 
-        totalSupply = totalSupply.add(amount);
+        totalSupply_ = totalSupply_.add(amount);
         balances[msg.sender] = balances[msg.sender].add(amount);
         emit Issued(msg.sender, amount);
         return true;
@@ -66,7 +66,7 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     }
 
     function deliver(address to) returns (bool) {
-        baseTokenAddress.call(bytes4(sha3("transferFrom(address,address,uint256)")), msg.sender, to, balances[to]);
+        // baseTokenAddress.call(bytes4(sha3("transferFrom(address,address,uint256)")), msg.sender, to, balances[to]);
         delete balances[to];
         msg.sender.transfer(exercises[to].amount.mul(strike).add(reserves[msg.sender]));
         delete exercises[to];
@@ -75,7 +75,7 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     }
 
     function forceLiquidation() returns (bool) {
-        uint256 issuer = mainIssuer; // TODO: temporary hack
+        address issuer = mainIssuer; // TODO: temporary hack
         require(getRequiredReserve().mul(balances[msg.sender]) > reserves[issuer] ||
             exercises[msg.sender].timestamp < block.timestamp - 86400);
 
@@ -92,7 +92,7 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
         return true;
     }
 
-    function getRequiredReserve() public returns (uint256) {
+    function getRequiredReserve() public view returns (uint256) {
         uint256 zero = 0;
         uint256 profit = 0;
         if (isPut) {
@@ -104,7 +104,11 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
         return reserve.add(profit);
     }
 
-    function getTokenPrice() public returns (uint256) {
+    function isReserveLow() public view returns (bool) {
+        return reserves[msg.sender] < getRequiredReserve().mul(issues[msg.sender]);
+    }
+
+    function getTokenPrice() public view returns (uint256) {
         return 20539500000000000;
     }
 
