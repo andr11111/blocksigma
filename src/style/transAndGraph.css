@@ -1,0 +1,8 @@
+.transAndGraph {
+    margin-top: 3rem;
+}
+
+.tableBody {
+    overflow: scroll;
+    max-height: 10rem;
+}

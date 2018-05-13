@@ -1,0 +1,12 @@
+.profiles {
+    overflow: scroll;
+    min-height: 10rem;
+}
+
+.option {
+    padding: 0.5rem;
+    overflow: scroll;
+    max-height: 10rem;
+    width: 15%;
+    text-align: center;
+}
