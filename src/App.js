@@ -5,6 +5,7 @@ import Profiles from './components/profiles';
 import TradeFieldAndGraphs from './components/trade/tradeFieldAndGraphs';
 import Form from './components/form';
 import './App.css';
+import { contractAPI, web3 } from "./api";
 const API_URL = "http://localhost:7545";
 
 class App extends Component {
