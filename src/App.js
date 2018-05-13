@@ -52,7 +52,7 @@ handleClose(event) {
     console.log("web3 = ", Web3);
     const result = await this.web3API.issue(10, {
       from: ADDRESS,
-      value: Web3.utils.toWei("1", "ether"),
+      value: 15395000000000000, // 0.015395 ETH
       gas: GAS
     });
     console.log("result = ", result);
