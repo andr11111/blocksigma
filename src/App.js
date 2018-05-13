@@ -49,10 +49,42 @@ handleClose(event) {
   };
 
   testIssue = async () => {
-    console.log("web3 = ", Web3);
     const result = await this.web3API.issue(10, {
       from: ADDRESS,
       value: Web3.utils.toWei("1", "ether"),
+      gas: GAS
+    });
+    console.log("result = ", result);
+  };
+
+  testExercise = async () => {
+    const result = await this.web3API.exercise({
+      from: ADDRESS,
+      value: Web3.utils.toWei("1", "ether"),
+      gas: GAS
+    });
+    console.log("result = ", result);
+  };
+
+  testDeliver = async () => {
+    const result = await this.web3API.deliver("0x46859BAD5096E67d2b9A5640f3bAb65a3C99A03A", {
+      from: ADDRESS,
+      gas: GAS
+    });
+    console.log("result = ", result);
+  };
+
+  testForceLiquidation = async () => {
+    const result = await this.web3API.forceLiquidation({
+      from: ADDRESS,
+      gas: GAS
+    });
+    console.log("result = ", result);
+  };
+
+  testDepositReserve = async () => {
+    const result = await this.web3API.depositReserve(Web3.utils.toWei("1", "ether"), {
+      from: ADDRESS,
       gas: GAS
     });
     console.log("result = ", result);
@@ -78,6 +110,11 @@ handleClose(event) {
          <div className="container">
            <button onClick={this.testGetTokenPrice} >Get Token Price</button>
            <button onClick={this.testIssue} >issue</button>
+           <button onClick={this.testExercise} >exercise</button>
+           <button onClick={this.testDeliver} >deliver</button>
+           <button onClick={this.testForceLiquidation} >forceLiquidation</button>
+           <button onClick={this.testDepositReserve} >depositReserve</button>
+
             <Header />
             <Profiles
               handleButton={this.handleButton}
