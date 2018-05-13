@@ -18,6 +18,7 @@ contract BlockSigma is StandardToken {
     uint256 reserve;
     address bancorConverter;
     address mainIssuer;
+    uint256 tokenPrice; // For testing
 
     struct ExerciseInfo {
         uint256 amount;
@@ -44,6 +45,7 @@ contract BlockSigma is StandardToken {
         isPut = _isPut;
         reserve = _reserve;
         bancorConverter = _bancorConverter;
+        tokenPrice = 20539500000000000; // TODO: For testing purposes, remove
     }
 
     function issue(uint256 amount) public payable returns (bool) {
@@ -126,7 +128,10 @@ contract BlockSigma is StandardToken {
             ethToBtn);
 
         return oneEther.mul(oneEther).div(btnToEos);*/
-        return 20539500000000000;
+        return tokenPrice; // For testing
     }
-    
+
+    function setTokenPrice(uint256 _tokenPrice) public {
+      tokenPrice = _tokenPrice;
+    }
 }
