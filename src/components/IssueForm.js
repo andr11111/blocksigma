@@ -1,6 +1,8 @@
 import React from 'react'
 import {Field, reduxForm} from 'redux-form'
 import RaisedButton from 'material-ui/RaisedButton';
+import { connect } from 'react-redux'
+
 
 
 const IssueForm = props => {
@@ -9,7 +11,7 @@ const IssueForm = props => {
     <form onSubmit={handleSubmit}>
       <div>
         <label>Contract configuration: <b>EOS May 31 2018 0.02 ETH Call</b></label>
-      </div>      
+      </div>
       <div>
         <label>Number of contracts</label>
         <div>
@@ -37,8 +39,20 @@ const IssueForm = props => {
       </div>
     </form>
   )
-}
+};
 
-export default reduxForm({
+let Form = reduxForm({
   form: 'issue'
-})(IssueForm)
+})(IssueForm);
+
+Form = connect(
+  state => ({
+    initialValues: {
+      amount: 10,
+      reserve: 0.015395
+    }
+  }),
+)(Form);
+
+
+export default Form;
