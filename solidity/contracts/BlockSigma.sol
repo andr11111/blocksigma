@@ -3,9 +3,13 @@ pragma solidity ^0.4.17;
 import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "zeppelin-solidity/contracts/math/Math.sol";
 
+contract BancorConverter {
+    function getReturn(address _fromToken, address _toToken, uint256 _amount) public view returns (uint256);
+}
+
 contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     using Math for uint256;
-    
+
     address baseTokenAddress;
     uint256 strike;
     uint256 exp;
@@ -110,26 +114,18 @@ contract BlockSigma_EOS_June_Put_20000000000000000 is StandardToken {
     }
 
     function getTokenPrice() public view returns (uint256) {
-        return 20539500000000000;
+        uint256 oneEther = 1000000000000000000;
+        BancorConverter ethToBtnConverter = BancorConverter(0xc6725aE749677f21E4d8f85F41cFB6DE49b9Db29);
+        uint256 ethToBtn = bancor.getReturn(0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315,
+            0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C,
+            oneEther);
+
+        BancorConverter btnToEosConverter = BancorConverter(0x0d8746c7bfac7494904d4133c550c72b02c7cdbb);
+        uint256 btnToEos = bancor.getReturn(0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C,
+            baseTokenAddress,
+            ethToBtn);
+
+        return oneEther.mul(oneEther).div(btnToEos);
     }
-
-
-    /**
-         * @dev Function to mint tokens
-         * @param _to The address that will receive the minted tokens.
-         * @param _amount The amount of tokens to mint.
-         * @return A boolean that indicates if the operation was successful.
-         *//*
-
-    function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
-        totalSupply_ = totalSupply_.add(_amount);
-        balances[_to] = balances[_to].add(_amount);
-        emit Mint(_to, _amount);
-        emit Transfer(address(0), _to, _amount);
-        return true;
-    }
-*/
-
-
-
+    
 }
