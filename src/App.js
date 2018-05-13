@@ -21,13 +21,22 @@ class App extends Component {
       isPopUp: true
     })
 };
+
+handleClose(event) {
+  console.log(event.target);
+  this.setState({
+    isPopUp: false
+  });
+};
   
   render() {
     if (this.state.isPopUp) {
     return (
       <main className="sigmaTrade">
          <div className="container">
-            <Form />
+            <Form 
+              handleClose={this.handleClose}
+            />
             <Header />
             <Profiles />
             <TradeFieldAndGraphs />
