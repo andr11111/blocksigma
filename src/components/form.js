@@ -10,40 +10,53 @@ class Form extends Component {
             expire: "",
             capacity: "",
             price: "",
-            type: ""
-
+            type: "",
+            isShown: false
         };
         this.handleFormIssue = this.handleFormIssue.bind(this);
         this.handleInputs = this.handleInputs.bind(this);
     };
 
-handleFormIssue(event) {
-    event.preventDefault();
-    this.props.handleClose();
-    console.log(this.state);
+    componentWillReceiveProps(nextProps, nextState) {
+        if (nextProps.isPopUp !== this.state.isShown) {
+            this.setState({
+                isShown: nextProps.isPopUp
+            });
+        }
+    };
 
-};
+    handleFormIssue(event) {
+        event.preventDefault();
+        this.props.handleNewIssue(this.state);
+        this.setState({
+            token: "",
+            expire: "",
+            capacity: "",
+            price: "",
+            type: "",
+        });
+    };
 
-handleInputs(event) {
-    console.log(event.target.id);
-    switch(event.target.id) {
-      case "inputToken": this.setState({token: event.target.value})
-      break;
-      case "inputExpire": this.setState({expire: event.target.value})
-      break;
-      case "inputCapacity": this.setState({capacity: event.target.value})
-      break;
-      case "inputPrice": this.setState({price: event.target.value})
-      break;
-      case "inputType": this.setState({type: event.target.value})
-      break;
-      default: 0;
-  }  
-};
+    handleInputs(event) {
+        console.log(event.target.id);
+        switch(event.target.id) {
+        case "inputToken": this.setState({token: event.target.value})
+        break;
+        case "inputExpire": this.setState({expire: event.target.value})
+        break;
+        case "inputCapacity": this.setState({capacity: event.target.value})
+        break;
+        case "inputPrice": this.setState({price: event.target.value})
+        break;
+        case "inputType": this.setState({type: event.target.value})
+        break;
+        default: 0;
+    }  
+    };
 
 render() {
-    return (
-        <div className="modal fade" id="exampleModal" tabIndex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    return this.state.isShown ? 
+        <div className="modal fade shown show" id="exampleModal" tabIndex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" style={{paddingRight: "0px", display: "block"}}>
             <form className="formPage" onSubmit={this.handleFormIssue}>
             <button className="btn btn-light" style={{display: "inline-block", marginLeft: "90%", width: "2rem"}} onClick={this.props.handleClose}>X</button>
                 <div className="form-row">
@@ -111,11 +124,20 @@ render() {
                         />
                     </div>
                 </div>
-                <button type="submit" className="btn btn-primary">Sign in</button>
+                <button type="submit" className="btn btn-primary" style={{margin: "0 auto"}}>Sign in</button>
             </form>
         </div>
-        );
+    : <div style={{display: "none"}}> </div>
     };
+
+// componentDidUpdate(nextProps, nextState) {
+//     console.log(nextProps, this.state.isShown);
+//         if (nextProps.isPopUp !== this.state.isShown) {
+//             this.setState({
+//                 isShown: nextProps.isPopUp
+//             })
+//         }
+//     };
 };
 
 export default Form;

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import '../style/header.css';
-import logo from '../assets/sigma.png';
+import logo from '../assets/sigma.svg';
 
 const Header = (props) => {
     return  (

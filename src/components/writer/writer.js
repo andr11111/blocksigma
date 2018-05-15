@@ -5,7 +5,6 @@ import OptionListWriter from './optionList';
 import BelowPaO from './belowPaO';
 
 const Writer = (props) => {
-    console.log(props);
     return (
         <div className="col col-sm-6 writer">
             <div className="row no-gutters">
@@ -15,6 +14,7 @@ const Writer = (props) => {
                 />
                 <OptionListWriter
                     writerOptionList={props.writerOptionList}
+                    handleDelivery={props.handleDelivery}
                 />
             </div>
         </div>

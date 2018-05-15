@@ -17,7 +17,7 @@ class TradeFieldAndGraphs extends Component {
         return (
             <div className="row no-gutters transAndGraph">
                 <TransactionTable />
-                <Graphs />
+                {/* <Graphs /> */}
             </div>
         ); 
     };

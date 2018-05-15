@@ -4,7 +4,7 @@ import Profiles from './components/profiles';
 import TradeFieldAndGraphs from './components/trade/tradeFieldAndGraphs';
 import Form from './components/form';
 import './App.css';
-import { contractAPI, web3 } from "./api";
+//import { contractAPI, web3 } from "./api";
 const API_URL = "http://localhost:7545";
 const ADDRESS = "0x53DE0dbe22F953F849EF7A79f5ca792129414f59";
 const GAS = 1000000;
@@ -26,34 +26,58 @@ class App extends Component {
 
     this.handleButton = this.handleButton.bind(this);
     this.handleClose = this.handleClose.bind(this);
-    contractAPI(API_URL).then((web3API) => {
+    this.handleNewIssue=this.handleNewIssue.bind(this);
+    this.handleDelivery=this.handleDelivery.bind(this);
+ /*   contractAPI(API_URL).then((web3API) => {
       this.web3API = web3API;
     }).catch((e) => {
       console.error("Error:", e.message);
-    });
+    });*/
 
   };
 
   handleButton(event) {
-    console.log(event.target);
+    event.preventDefault();
     this.setState({
       isPopUp: true
-    })
+    });
+    if (document.getElementsByClassName('modal-backdrop')[0] === undefined) {
+      const elem = document.createElement('div');
+      elem.setAttribute('class',  'modal-backdrop fade show');
+      document.body.appendChild(elem);
+    };
 };
 
 handleClose(event) {
+  event.preventDefault();
   this.setState({
     isPopUp: false
   });
   var el = document.getElementsByClassName('modal-backdrop')[0];
-  console.log(el);
   el.remove();
+};
+
+handleDelivery(event) {
+  event.preventDefault();
+  console.log(event.target.id);
+  console.log(this.state.writerOptionList.slice(0, parseInt(event.target.id)));
+  console.log(this.state.writerOptionList.slice(parseInt(event.target.id) + 1));
+  this.setState({
+    writerOptionList: [...
+      this.state.writerOptionList.slice(0, parseInt(event.target.id)), 
+      ...this.state.writerOptionList.slice(parseInt(event.target.id) + 1)
+    ]
+  })
 };
   
 handleNewIssue(data) {
   this.setState({
-    writerOptionList: [...this.state.writerOptionList, data]
+    writerOptionList: [...this.state.writerOptionList, data],
+    isPopUp: false
   });
+  var el = document.getElementsByClassName('modal-backdrop')[0];
+  el.remove();
+  
 };
 
   testGetTokenPrice = async () => {
@@ -104,43 +128,25 @@ handleNewIssue(data) {
   };
 
   render() {
-    if (this.state.isPopUp) {
+    console.log(this.state.isPopUp);
     return (
       <main className="sigmaTrade">
-         <div className="container">
+         <div className="container-fluid">
             <Form
               handleClose={this.handleClose}
-              handleNewIssue={this.props.handleNewIssue}
+              handleNewIssue={this.handleNewIssue}
+              isPopUp={this.state.isPopUp}
             />
             <Header />
             <Profiles 
               writerOptionList={this.state.writerOptionList}
-            />
-            <TradeFieldAndGraphs />
-          </div>
-      </main>
-    )
-  } else {
-    return (
-      <main className="sigmaTrade">
-         <div className="container">
-           <button onClick={this.testGetTokenPrice} >Get Token Price</button>
-           <button onClick={this.testIssue} >issue</button>
-           <button onClick={this.testExercise} >exercise</button>
-           <button onClick={this.testDeliver} >deliver</button>
-           <button onClick={this.testForceLiquidation} >forceLiquidation</button>
-           <button onClick={this.testDepositReserve} >depositReserve</button>
-
-            <Header />
-            <Profiles
+              handleDelivery={this.handleDelivery}
               handleButton={this.handleButton}
-              writerOptionList={this.state.writerOptionList}
             />
             <TradeFieldAndGraphs />
           </div>
       </main>
-      );
-    };
+    );
   };
 };
 

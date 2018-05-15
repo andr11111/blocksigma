@@ -1,4 +1,15 @@
-.option td {
-    max-width: 5rem;
-    font-size: 12px;
+.option {
+    text-align: left;
+    padding: 0px;
+    width: 90%;
+    font-size: 13px;
 }
+
+.buttonsBlock {
+    padding: 0.5rem;
+}
+
+.option td {
+    width: 5rem;
+}
+

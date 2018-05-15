@@ -2,38 +2,43 @@ import React from 'react';
 
 const TransactionTable = (props) => {
     return (
-        <div className="col col-sm-7">
+        <div className="col col-sm-12">
             <div className="headerTable">
-                <table className="table" style={{margin: "0"}}>
+                <table className="table" style={{margin: "0", textAlign: "center"}}>
                 <thead>
                 <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">First</th>
-                    <th scope="col">Last</th>
-                    <th scope="col">Handle</th>
+                    <th scope="col">Token</th>
+                    <th scope="col">Strike</th>
+                    <th scope="col">Expiration</th>
+                    <th scope="col">Put / call</th>
+                    <th scope="col">Reserve</th>
                 </tr>
                 </thead>
                 </table>
             </div>
-            <div className="col col-sm-12 tableBody">
+            <div className="col col-sm-12 tableBody" style={{textAlign: "center", padding: "0"}}>
                 <table className="table">
                 <tbody>
                 <tr>
-                    <th scope="row">1</th>
-                    <td>Mark</td>
-                    <td>Otto</td>
-                    <td>@mdo</td>
+                    <td>Token</td>
+                    <td>Strike</td>
+                    <td>Expiration</td>
+                    <td>Put / call</td>
+                    <td>Reserve</td>
                 </tr>
                 <tr>
-                    <th scope="row">2</th>
-                    <td>Jacob</td>
-                    <td>Thornton</td>
-                    <td>@fat</td>
+                    <td>Token</td>
+                    <td>Strike</td>
+                    <td>Expiration</td>
+                    <td>Put / call</td>
+                    <td>Reserve</td>
                 </tr>
                 <tr>
-                    <th scope="row">3</th>
-                    <td>Larry the Bird</td>
-                    <td>@twitter</td>
+                    <td>Token</td>
+                    <td>Strike</td>
+                    <td>Expiration</td>
+                    <td>Put / call</td>
+                    <td>Reserve</td>
                 </tr>
                 </tbody>
                 </table>
