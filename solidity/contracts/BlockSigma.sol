@@ -21,6 +21,7 @@ contract BlockSigma is StandardToken {
     }
 
     address constant bancorTokenAddress = "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C";
+    uint constant exercisePeriod = 86400;
 
     address underlyingTokenAddress;
     address currencyTokenAddress;
@@ -128,6 +129,8 @@ contract BlockSigma is StandardToken {
     * @dev Buyer can force liquidation if exercise is past due or reserve is below requirement
     */    
     function forceLiquidate() public returns (bool) {
+        require(canLiquidate());
+
         bool result;
         if (isPut) {
             result = forceLiquidatePut();
@@ -183,6 +186,12 @@ contract BlockSigma is StandardToken {
         return reserve < getRequiredReserve().mul(totalSupply_);
     }
 
+    function canLiquidate() public view returns (bool) {
+        ExerciseInfo exercise = exercises[msg.sender];
+        return isReserveLow() ||
+            (exercise && exercise.timestamp < block.timestamp - exercisePeriod);
+    }
+
     /**
     * @dev Get price of the underlying token from Bancor
     */    
@@ -206,6 +215,7 @@ contract BlockSigma is StandardToken {
         tokenPrice = _tokenPrice;
     }    
 
+    /* Private */
     function transferCurrencyToken(address from, address to, uint256 amount) private {
         TokenStub currencyToken = TokenStub(currencyTokenAddress);
         currencyToken.transferFrom(from, to, amount);
@@ -262,17 +272,14 @@ contract BlockSigma is StandardToken {
 
     function forceLiquidateCall() private returns (bool) {
         ExerciseInfo exercise = exercises[msg.sender];
-        require(isReserveLow() ||
-            (exercise && exercise.timestamp < block.timestamp - 86400));
-        
         uint256 amountToSend;
         unit256 releasedReserve = reserve.div(totalSupply_).mul(exercise.amount);
 
         if (exercise) {
-          // If buyer deposited funds at exercise, we should release them in addition to reserve
-          amountToSend = exercise.amount.mul(strike).add(releasedReserve);
+            // If buyer deposited funds at exercise, we should release them in addition to reserve
+            amountToSend = exercise.amount.mul(strike).add(releasedReserve);
         } else {
-          amountToSend = releasedReserve;
+            amountToSend = releasedReserve;
         }
 
         // Transfer reserve to buyer     
@@ -280,19 +287,16 @@ contract BlockSigma is StandardToken {
         reserve = reserve.sub(releasedReserve);                
     }
 
-    function forceLiquidatePut() returns (bool) {
+    function forceLiquidatePut() private returns (bool) {
         ExerciseInfo exercise = exercises[msg.sender];
-        require(isReserveLow() ||
-            (exercise && exercise.timestamp < block.timestamp - 86400));
-                
         unit256 releasedReserve = reserve.div(totalSupply_).mul(exercise.amount);
 
         if (exercise) {
-          transferUnderlyingToken(this, msg.sender, exercises[to].amount);
+            transferUnderlyingToken(this, msg.sender, exercises[to].amount);
         }
 
         // Transfer reserve to buyer
         transferCurrencyToken(this, msg.sender, releasedReserve);
         reserve = reserve.sub(releasedReserve);                
-    }    
+    }
 }
