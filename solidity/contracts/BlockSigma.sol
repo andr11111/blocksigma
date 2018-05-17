@@ -3,14 +3,17 @@ pragma solidity ^0.4.17;
 import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "zeppelin-solidity/contracts/math/Math.sol";
 
+
 contract BancorConverterStub {
     function getReturn(address _fromToken, address _toToken, uint256 _amount) public view returns (uint256);
 }
+
 
 contract TokenStub {
     function transfer(address dst, uint wad) public returns (bool);
     function transferFrom(address src, address dst, uint wad) public returns (bool);
 }
+
 
 contract BlockSigma is StandardToken {
     using Math for uint256;
@@ -20,8 +23,8 @@ contract BlockSigma is StandardToken {
         _;
     }
 
-    address constant bancorTokenAddress = "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C";
-    uint constant exercisePeriod = 86400;
+    address constant BANCOR_TOKEN_ADDRESS = 0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C;
+    uint constant EXERCISE_PERIOD = 86400;
 
     address underlyingTokenAddress;
     address currencyTokenAddress;
@@ -57,7 +60,7 @@ contract BlockSigma is StandardToken {
         address _underlyingBancorConverter, address _currencyBancorConverter,
         address _issuer) public {
 
-        owner = msg.sender;        
+        owner = msg.sender;
         totalSupply_ = 0;
         underlyingTokenAddress = _underlyingTokenAddress;
         currencyTokenAddress = _currencyTokenAddress;
@@ -187,9 +190,9 @@ contract BlockSigma is StandardToken {
     }
 
     function canLiquidate() public view returns (bool) {
-        ExerciseInfo exercise = exercises[msg.sender];
+        ExerciseInfo storage exerciseInfo = exercises[msg.sender];
         return isReserveLow() ||
-            (exercise && exercise.timestamp < block.timestamp - exercisePeriod);
+            (exerciseInfo.amount > 0 && exerciseInfo.timestamp < block.timestamp - EXERCISE_PERIOD);
     }
 
     /**
@@ -197,13 +200,13 @@ contract BlockSigma is StandardToken {
     */    
     function getUnderlyingPrice() public view returns (uint256) {
         uint256 size = 1000000;
-        BancorConverter currencyToBtnConverter = BancorConverter(currencyBancorConverter);
+        BancorConverterStub currencyToBtnConverter = BancorConverterStub(currencyBancorConverter);
         uint256 currencyToBtn = currencyToBtnConverter.getReturn(currencyTokenAddress,
-            bancorTokenAddress,
+            BANCOR_TOKEN_ADDRESS,
             size);
 
-        BancorConverter btnToUnderlyingConverter = BancorConverter(underlyingBancorConverter);
-        uint256 btnToUnderlying = btnToUnderlyingConverter.getReturn(bancorTokenAddress,
+        BancorConverterStub btnToUnderlyingConverter = BancorConverterStub(underlyingBancorConverter);
+        uint256 btnToUnderlying = btnToUnderlyingConverter.getReturn(BANCOR_TOKEN_ADDRESS,
             underlyingTokenAddress,
             currencyToBtn);
 
@@ -248,7 +251,7 @@ contract BlockSigma is StandardToken {
         transferUnderlyingToken(msg.sender, to, exercises[to].amount);
 
         // Reserve + payment for tokens is released to seller
-        unit256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
+        uint256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
         transferCurrencyToken(this, msg.sender, exercises[to].amount.mul(strike).add(releasedReserve));
         reserve = reserve.sub(releasedReserve);
   
@@ -263,7 +266,7 @@ contract BlockSigma is StandardToken {
         transferUnderlyingToken(this, msg.sender, exercises[to].amount);
 
         // Reserve is released to seller
-        unit256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
+        uint256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
         transferCurrencyToken(this, msg.sender, releasedReserve);
         reserve = reserve.sub(releasedReserve);
         
@@ -271,13 +274,13 @@ contract BlockSigma is StandardToken {
     }    
 
     function forceLiquidateCall() private returns (bool) {
-        ExerciseInfo exercise = exercises[msg.sender];
+        ExerciseInfo storage exerciseInfo = exercises[msg.sender];
         uint256 amountToSend;
-        unit256 releasedReserve = reserve.div(totalSupply_).mul(exercise.amount);
+        uint256 releasedReserve = reserve.div(totalSupply_).mul(exerciseInfo.amount);
 
-        if (exercise) {
+        if (exerciseInfo.amount > 0) {
             // If buyer deposited funds at exercise, we should release them in addition to reserve
-            amountToSend = exercise.amount.mul(strike).add(releasedReserve);
+            amountToSend = exerciseInfo.amount.mul(strike).add(releasedReserve);
         } else {
             amountToSend = releasedReserve;
         }
@@ -288,11 +291,12 @@ contract BlockSigma is StandardToken {
     }
 
     function forceLiquidatePut() private returns (bool) {
-        ExerciseInfo exercise = exercises[msg.sender];
-        unit256 releasedReserve = reserve.div(totalSupply_).mul(exercise.amount);
+        ExerciseInfo storage exerciseInfo = exercises[msg.sender];
+        uint256 releasedReserve = reserve.div(totalSupply_).mul(exerciseInfo.amount);
 
-        if (exercise) {
-            transferUnderlyingToken(this, msg.sender, exercises[to].amount);
+        if (exerciseInfo.amount > 0) {
+            // Return deposited tokens to buyer
+            transferUnderlyingToken(this, msg.sender, exerciseInfo.amount);
         }
 
         // Transfer reserve to buyer
