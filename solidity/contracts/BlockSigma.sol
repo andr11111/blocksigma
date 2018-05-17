@@ -3,20 +3,35 @@ pragma solidity ^0.4.17;
 import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "zeppelin-solidity/contracts/math/Math.sol";
 
-contract BancorConverter {
+contract BancorConverterStub {
     function getReturn(address _fromToken, address _toToken, uint256 _amount) public view returns (uint256);
+}
+
+contract TokenStub {
+    function transfer(address dst, uint wad) public returns (bool);
+    function transferFrom(address src, address dst, uint wad) public returns (bool);
 }
 
 contract BlockSigma is StandardToken {
     using Math for uint256;
 
-    address baseTokenAddress;
+    modifier onlyIssuer() {
+        require(msg.sender == issuer);
+        _;
+    }
+
+    address constant bancorTokenAddress = "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C";
+
+    address underlyingTokenAddress;
+    address currencyTokenAddress;
+    address issuer;
     uint256 strike;
     uint256 exp;
     bool isPut;
     address public owner;
-    uint256 reserve;
-    address bancorConverter;
+    uint256 minReserve;
+    address underlyingBancorConverter;
+    address currencyBancorConverter;
     address mainIssuer;
     uint256 tokenPrice; // For testing
 
@@ -25,34 +40,44 @@ contract BlockSigma is StandardToken {
         uint256 timestamp;
     }
 
-    mapping(address => uint256) reserves;
+    uint256 reserve;
     mapping(address => uint256) issues;
     mapping(address => ExerciseInfo) exercises;
 
 
     event Issued(address indexed to, uint256 amount);
     event Exercised(address indexed who);
+    event Delivered(address indexed who, address indexed to);
     event Liquidated(address indexed who);
     event MintFinished();
 
-    function BlockSigma(address _baseTokenAddress,
-        uint256 _strike, uint256 _exp, bool _isPut, uint256 _reserve, address _bancorConverter) public {
-        owner = msg.sender;
+    function BlockSigma(address _underlyingTokenAddress, address _currencyTokenAddress,
+        uint256 _strike, uint256 _exp, bool _isPut, uint256 _minReserve,
+        address _underlyingBancorConverter, address _currencyBancorConverter,
+        address _issuer) public {
+
+        owner = msg.sender;        
         totalSupply_ = 0;
-        baseTokenAddress = _baseTokenAddress;
+        underlyingTokenAddress = _underlyingTokenAddress;
+        currencyTokenAddress = _currencyTokenAddress;
         strike = _strike;
         exp = _exp;
         isPut = _isPut;
-        reserve = _reserve;
-        bancorConverter = _bancorConverter;
+        minReserve = _minReserve;
+        underlyingBancorConverter = _underlyingBancorConverter;
+        currencyBancorConverter = _currencyBancorConverter;
+        issuer = _issuer;
+        
+        reserve = 0;
         tokenPrice = 20539500000000000; // TODO: For testing purposes, remove
     }
 
-    function issue(uint256 amount) public payable returns (bool) {
-        require(msg.value >= getRequiredReserve().mul(amount));
-        reserves[msg.sender] = msg.value;
-        issues[msg.sender] = issues[msg.sender].add(amount); // don't agree
-        mainIssuer = msg.sender;
+    /**
+    * @dev Ability for writer to issue new contracts    
+    */    
+    function issue(uint256 amount) public onlyIssuer returns (bool) {      
+        uint256 requiredReserve = getRequiredReserve().mul(amount);
+        depositReserve(requiredReserve);
 
         totalSupply_ = totalSupply_.add(amount);
         balances[msg.sender] = balances[msg.sender].add(amount);
@@ -60,78 +85,214 @@ contract BlockSigma is StandardToken {
         return true;
     }
 
-    function exercise() public payable returns (bool) {
-        require(block.timestamp < exp);
-        uint256 requiredFunds = balances[msg.sender].mul(strike);
-        require(msg.value >= requiredFunds);
+    /**
+    * @dev Buyer exercises option
+    */    
+    function exercise() public returns (bool) {
+        bool result;
+        if (isPut) {
+            result = exercisePut();
+        } else {
+            result = exerciseCall();
+        }
+
         exercises[msg.sender] = ExerciseInfo({
             amount: balances[msg.sender],
             timestamp: block.timestamp
         });
-        Exercised(msg.sender);
-        return true;
+        
+        emit Exercised(msg.sender);
+        return result;
     }
 
-    function deliver(address to) returns (bool) {
-        // baseTokenAddress.call(bytes4(sha3("transferFrom(address,address,uint256)")), msg.sender, to, balances[to]);
+    /**
+    * @dev Writer delivers underlying tokens(call) or currency(put)
+    */    
+    function deliver(address to) public returns (bool) {
+        bool result;
+        if (isPut) {
+            result = deliverPut(to);
+        } else {
+            result = deliverCall(to);
+        }
+
+        totalSupply_ = totalSupply_.sub(exercises[to].amount);
         delete balances[to];
-        msg.sender.transfer(exercises[to].amount.mul(strike).add(reserves[msg.sender]));
         delete exercises[to];
-        delete reserves[msg.sender];
-        return true;
+
+        emit Delivered(msg.sender, to);
+        return result;
     }
 
-    function forceLiquidation() returns (bool) {
-        address issuer = mainIssuer; // TODO: temporary hack
-        require(getRequiredReserve().mul(balances[msg.sender]) > reserves[issuer] ||
-            exercises[msg.sender].timestamp < block.timestamp - 86400);
+    /**
+    * @dev Buyer can force liquidation if exercise is past due or reserve is below requirement
+    */    
+    function forceLiquidate() public returns (bool) {
+        bool result;
+        if (isPut) {
+            result = forceLiquidatePut();
+        } else {
+            result = forceLiquidateCall();
+        }
 
-        // Transfer reserve to buyer
-        msg.sender.transfer(reserves[issuer]);
         delete balances[msg.sender];
         delete exercises[msg.sender];
-        delete reserves[issuer];
-        Liquidated(msg.sender);
+
+        emit Liquidated(msg.sender);
+        return result;
     }
 
-    function depositReserve(uint256 amount) public payable returns (bool) {
-        reserves[msg.sender] = reserves[msg.sender].add(msg.value);
+    /**
+    * @dev Writer deposits additional reserve
+    */    
+    function depositReserve(uint256 amount) public returns (bool) {        
+        transferCurrencyToken(msg.sender, this, amount);
+        reserve = reserve.add(amount);
         return true;
     }
 
+    /**
+    * @dev Writer withdraws reserve
+    */    
+    function withdrawReserve(uint256 amount) public onlyIssuer returns (bool) {        
+        reserve = reserve.sub(amount);
+        require(!isReserveLow());
+        transferCurrencyToken(this, msg.sender, amount);
+        return true;
+    }    
+
+    /**
+    * @dev Calculates minimum required reserve per contracts
+    */    
     function getRequiredReserve() public view returns (uint256) {
         uint256 zero = 0;
         uint256 profit = 0;
         if (isPut) {
-            profit = zero.max256(strike.sub(getTokenPrice()));
+            profit = zero.max256(strike.sub(getUnderlyingPrice()));
         } else {
-            profit = zero.max256(getTokenPrice().sub(strike));
+            profit = zero.max256(getUnderlyingPrice().sub(strike));
         }
 
-        return reserve.add(profit);
+        return minReserve.add(profit);
     }
 
+    /**
+    * @dev Tells if reserve is below requirement
+    */    
     function isReserveLow() public view returns (bool) {
-        return reserves[msg.sender] < getRequiredReserve().mul(issues[msg.sender]);
+        return reserve < getRequiredReserve().mul(totalSupply_);
     }
 
-    function getTokenPrice() public view returns (uint256) {
-        /*uint256 oneEther = 1000000000000000000;
-        BancorConverter ethToBtnConverter = BancorConverter(0xc6725aE749677f21E4d8f85F41cFB6DE49b9Db29);
-        uint256 ethToBtn = bancor.getReturn(0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315,
-            0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C,
-            oneEther);
+    /**
+    * @dev Get price of the underlying token from Bancor
+    */    
+    function getUnderlyingPrice() public view returns (uint256) {
+        uint256 size = 1000000;
+        BancorConverter currencyToBtnConverter = BancorConverter(currencyBancorConverter);
+        uint256 currencyToBtn = currencyToBtnConverter.getReturn(currencyTokenAddress,
+            bancorTokenAddress,
+            size);
 
-        BancorConverter btnToEosConverter = BancorConverter(0x0d8746c7bfac7494904d4133c550c72b02c7cdbb);
-        uint256 btnToEos = bancor.getReturn(0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C,
-            baseTokenAddress,
-            ethToBtn);
+        BancorConverter btnToUnderlyingConverter = BancorConverter(underlyingBancorConverter);
+        uint256 btnToUnderlying = btnToUnderlyingConverter.getReturn(bancorTokenAddress,
+            underlyingTokenAddress,
+            currencyToBtn);
 
-        return oneEther.mul(oneEther).div(btnToEos);*/
-        return tokenPrice; // For testing
+        return size.mul(size).div(btnToUnderlying);
+        // return tokenPrice; // For testing
     }
 
     function setTokenPrice(uint256 _tokenPrice) public {
-      tokenPrice = _tokenPrice;
+        tokenPrice = _tokenPrice;
+    }    
+
+    function transferCurrencyToken(address from, address to, uint256 amount) private {
+        TokenStub currencyToken = TokenStub(currencyTokenAddress);
+        currencyToken.transferFrom(from, to, amount);
     }
+
+    function transferUnderlyingToken(address from, address to, uint256 amount) private {
+        TokenStub underlyingToken = TokenStub(underlyingTokenAddress);
+        underlyingToken.transferFrom(from, to, amount);
+    }
+    
+    function exerciseCall() private returns (bool) {
+        require(block.timestamp < exp);
+
+        // Buyer deposits currency to buy tokens at strike
+        uint256 requiredFunds = balances[msg.sender].mul(strike);
+        transferCurrencyToken(msg.sender, this, requiredFunds);
+        return true;
+    }
+
+    function exercisePut() private returns (bool) {
+        require(block.timestamp < exp);
+
+        // Buyer deposits tokens to sell at strike
+        transferUnderlyingToken(msg.sender, this, balances[msg.sender]);
+        return true;
+    }
+    
+    function deliverCall(address to) private returns (bool) {
+        // Seller transfers promised tokens to buyer
+        transferUnderlyingToken(msg.sender, to, exercises[to].amount);
+
+        // Reserve + payment for tokens is released to seller
+        unit256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
+        transferCurrencyToken(this, msg.sender, exercises[to].amount.mul(strike).add(releasedReserve));
+        reserve = reserve.sub(releasedReserve);
+  
+        return true;
+    }
+
+    function deliverPut(address to) private returns (bool) {
+        // Seller transfers payment for sold tokens to buyer
+        transferCurrencyToken(msg.sender, to, exercises[to].amount.mul(strike));
+
+        // Sold tokens are transferred to seller
+        transferUnderlyingToken(this, msg.sender, exercises[to].amount);
+
+        // Reserve is released to seller
+        unit256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
+        transferCurrencyToken(this, msg.sender, releasedReserve);
+        reserve = reserve.sub(releasedReserve);
+        
+        return true;
+    }    
+
+    function forceLiquidateCall() private returns (bool) {
+        ExerciseInfo exercise = exercises[msg.sender];
+        require(isReserveLow() ||
+            (exercise && exercise.timestamp < block.timestamp - 86400));
+        
+        uint256 amountToSend;
+        unit256 releasedReserve = reserve.div(totalSupply_).mul(exercise.amount);
+
+        if (exercise) {
+          // If buyer deposited funds at exercise, we should release them in addition to reserve
+          amountToSend = exercise.amount.mul(strike).add(releasedReserve);
+        } else {
+          amountToSend = releasedReserve;
+        }
+
+        // Transfer reserve to buyer     
+        transferCurrencyToken(this, msg.sender, amountToSend);
+        reserve = reserve.sub(releasedReserve);                
+    }
+
+    function forceLiquidatePut() returns (bool) {
+        ExerciseInfo exercise = exercises[msg.sender];
+        require(isReserveLow() ||
+            (exercise && exercise.timestamp < block.timestamp - 86400));
+                
+        unit256 releasedReserve = reserve.div(totalSupply_).mul(exercise.amount);
+
+        if (exercise) {
+          transferUnderlyingToken(this, msg.sender, exercises[to].amount);
+        }
+
+        // Transfer reserve to buyer
+        transferCurrencyToken(this, msg.sender, releasedReserve);
+        reserve = reserve.sub(releasedReserve);                
+    }    
 }

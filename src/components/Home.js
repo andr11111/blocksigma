@@ -207,8 +207,8 @@ class Home extends Component {
             <td style={{width: '50%'}}>
               <Card style={{height: '400px'}}>
                 <CardTitle title="Writer" />
-                <CardText>
-                  Writer of an option has theoretically unlimited risk. They need to post maintenance margin to cover the outstanding liability. Writer continuously monitors and updates the reserve to be above requirement, otherwise they risk losing the reserve due to liquidation.
+                <CardText style={{height: '150px'}}>
+                  Writer of an option has theoretically unlimited risk. They need to post maintenance margin to cover the outstanding liability. Writer continuously monitors and updates the reserve to be above requirement, otherwise they risk losing the reserve due to forced liquidation.
                 </CardText>
                 <CardActions>
                   <FlatButton label="Issue Option Contracts" onClick={this.handleOpenIssue} />                  
@@ -219,7 +219,7 @@ class Home extends Component {
             <td style={{width: '50%'}}>
               <Card style={{height: '400px'}}>
                 <CardTitle title="Buyer" />
-                <CardText>
+                <CardText style={{height: '150px'}}>
                   Buyer's risk is limited to the initial premium paid. However, buyer has to continuously monitor the reserve and force liquidation of the position whenever it goes below the requirement.
                 </CardText>
                 <CardActions>                  
