@@ -5,6 +5,7 @@ import "zeppelin-solidity/contracts/math/Math.sol";
 
 contract EOS is StandardToken {
   function EOS() public {
-    totalSupply_ = 1000000000;
+    totalSupply_ = 1000000000000000000000;//1000000000000000000000000000;
+    balances[msg.sender] = totalSupply_;
   }
 }

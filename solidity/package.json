@@ -7,6 +7,7 @@
     "test": "test"
   },
   "dependencies": {
+    "moment": "^2.22.1",
     "truffle-contract": "^3.0.5",
     "web3": "^1.0.0-beta.34",
     "zeppelin-solidity": "^1.9.0"

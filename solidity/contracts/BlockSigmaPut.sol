@@ -1,16 +1,25 @@
-pragma solidity ^0.4.17;
+pragma solidity ^0.4.21;
 
 import "./BlockSigmaBase.sol";
-import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
-import "zeppelin-solidity/contracts/math/Math.sol";
 
 
 contract BlockSigmaPut is BlockSigmaBase {
     
-    function getRequiredReserve() public view returns (uint256) {
-        uint256 zero = 0;
-        uint256 profit = zero.max256(strike.sub(getUnderlyingPrice()));
-        return minReserve.add(profit);      
+    function BlockSigmaPut(address _underlyingTokenAddress, address _currencyTokenAddress,
+        uint256 _strike, uint256 _exp, uint256 _minReserve,
+        address _underlyingBancorConverter, address _currencyBancorConverter,
+        address _issuer) 
+        BlockSigmaBase(_underlyingTokenAddress, _currencyTokenAddress, _strike, _exp, _minReserve, 
+        _underlyingBancorConverter, _currencyBancorConverter, _issuer) public {
+
+    }
+
+    function getRequiredReserveInternal() internal view returns (uint256) {
+        uint256 liability = 0;
+        if (getUnderlyingPrice() < strike) {
+            liability = strike.sub(getUnderlyingPrice());
+        }        
+        return minReserve.add(liability);      
     }
 
     function excerciseInternal() internal returns (bool) {
@@ -23,7 +32,7 @@ contract BlockSigmaPut is BlockSigmaBase {
     
     function deliverInternal(address to) internal returns (bool) {
         // Seller transfers payment for sold tokens to buyer
-        super.transferCurrencyToken(msg.sender, to, exercises[to].amount.mul(strike));
+        super.transferCurrencyToken(msg.sender, to, exercises[to].amount.mul(strike).div(DECIMALS));
 
         // Sold tokens are transferred to seller
         super.transferUnderlyingToken(this, msg.sender, exercises[to].amount);
@@ -38,7 +47,7 @@ contract BlockSigmaPut is BlockSigmaBase {
 
     function forceLiquidateInternal() internal returns (bool) {
         ExerciseInfo storage exerciseInfo = exercises[msg.sender];
-        uint256 releasedReserve = reserve.div(totalSupply_).mul(exerciseInfo.amount);
+        uint256 releasedReserve = reserve.div(totalSupply_).mul(balances[msg.sender]);
 
         if (exerciseInfo.amount > 0) {
             // Return deposited tokens to buyer
@@ -48,5 +57,7 @@ contract BlockSigmaPut is BlockSigmaBase {
         // Transfer reserve to buyer
         super.transferCurrencyToken(this, msg.sender, releasedReserve);
         reserve = reserve.sub(releasedReserve);
+
+        return true;
     }
 }

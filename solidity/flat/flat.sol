@@ -1,29 +1,5 @@
 pragma solidity ^0.4.21;
 
-// File: zeppelin-solidity/contracts/math/Math.sol
-
-/**
- * @title Math
- * @dev Assorted math operations
- */
-library Math {
-  function max64(uint64 a, uint64 b) internal pure returns (uint64) {
-    return a >= b ? a : b;
-  }
-
-  function min64(uint64 a, uint64 b) internal pure returns (uint64) {
-    return a < b ? a : b;
-  }
-
-  function max256(uint256 a, uint256 b) internal pure returns (uint256) {
-    return a >= b ? a : b;
-  }
-
-  function min256(uint256 a, uint256 b) internal pure returns (uint256) {
-    return a < b ? a : b;
-  }
-}
-
 // File: zeppelin-solidity/contracts/math/SafeMath.sol
 
 /**
@@ -242,7 +218,7 @@ contract StandardToken is ERC20, BasicToken {
 
 }
 
-// File: contracts/BlockSigma.sol
+// File: contracts/BlockSigmaBase.sol
 
 contract BancorConverterStub {
     function getReturn(address _fromToken, address _toToken, uint256 _amount) public view returns (uint256);
@@ -255,39 +231,30 @@ contract TokenStub {
 }
 
 
-contract BlockSigma is StandardToken {
-    using Math for uint256;
-
-    modifier onlyIssuer() {
-        require(msg.sender == issuer);
-        _;
-    }
-
+contract BlockSigmaBase is StandardToken {
     address constant BANCOR_TOKEN_ADDRESS = 0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C;
     uint constant EXERCISE_PERIOD = 86400;
+    uint constant PRICE_PRECISION = 1000000000000000000;
 
-    address underlyingTokenAddress;
-    address currencyTokenAddress;
-    address issuer;
-    uint256 strike;
-    uint256 exp;
-    bool isPut;
+    address public underlyingTokenAddress;
+    address public currencyTokenAddress;
+    address public issuer;
+    uint256 public strike;
+    uint256 public exp;    
     address public owner;
-    uint256 minReserve;
-    address underlyingBancorConverter;
-    address currencyBancorConverter;
-    address mainIssuer;
-    uint256 tokenPrice; // For testing
+    uint256 public minReserve;
+    address public underlyingBancorConverter;
+    address public currencyBancorConverter;
+
+    uint256 public tokenPrice; // For testing
 
     struct ExerciseInfo {
         uint256 amount;
         uint256 timestamp;
     }
 
-    uint256 reserve;
-    mapping(address => uint256) issues;
-    mapping(address => ExerciseInfo) exercises;
-
+    uint256 public reserve;    
+    mapping(address => ExerciseInfo) public exercises;
 
     event Issued(address indexed to, uint256 amount);
     event Exercised(address indexed who);
@@ -295,8 +262,23 @@ contract BlockSigma is StandardToken {
     event Liquidated(address indexed who);
     event MintFinished();
 
-    function BlockSigma(address _underlyingTokenAddress, address _currencyTokenAddress,
-        uint256 _strike, uint256 _exp, bool _isPut, uint256 _minReserve,
+    function getRequiredReserveInternal() internal view returns (uint256);
+    function excerciseInternal() internal returns (bool);
+    function deliverInternal(address to) internal returns (bool);
+    function forceLiquidateInternal() internal returns (bool);
+  
+    modifier onlyIssuer() {
+        require(msg.sender == issuer);
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }    
+
+    function BlockSigmaBase(address _underlyingTokenAddress, address _currencyTokenAddress,
+        uint256 _strike, uint256 _exp, uint256 _minReserve,
         address _underlyingBancorConverter, address _currencyBancorConverter,
         address _issuer) public {
 
@@ -306,22 +288,28 @@ contract BlockSigma is StandardToken {
         currencyTokenAddress = _currencyTokenAddress;
         strike = _strike;
         exp = _exp;
-        isPut = _isPut;
         minReserve = _minReserve;
         underlyingBancorConverter = _underlyingBancorConverter;
         currencyBancorConverter = _currencyBancorConverter;
         issuer = _issuer;
         
         reserve = 0;
-        tokenPrice = 20539500000000000; // TODO: For testing purposes, remove
+        tokenPrice = 13000000000000000000; // TODO: For testing purposes, remove
+    }
+
+    function getRequiredReserve() public view returns (uint256) {
+        if (isExpired()) {
+            return 0;
+        }
+        return getRequiredReserveInternal();
     }
 
     /**
     * @dev Ability for writer to issue new contracts    
     */    
-    function issue(uint256 amount) public onlyIssuer returns (bool) {      
-        uint256 requiredReserve = getRequiredReserve().mul(amount);
-        depositReserve(requiredReserve);
+    function issue(uint256 amount) public onlyIssuer returns (bool) {        
+        uint256 requiredReserve = getRequiredReserve().mul(amount);        
+        depositReserve(requiredReserve);        
 
         totalSupply_ = totalSupply_.add(amount);
         balances[msg.sender] = balances[msg.sender].add(amount);
@@ -333,12 +321,8 @@ contract BlockSigma is StandardToken {
     * @dev Buyer exercises option
     */    
     function exercise() public returns (bool) {
-        bool result;
-        if (isPut) {
-            result = exercisePut();
-        } else {
-            result = exerciseCall();
-        }
+        require(isExpired() == false);
+        bool result = excerciseInternal();
 
         exercises[msg.sender] = ExerciseInfo({
             amount: balances[msg.sender],
@@ -347,18 +331,13 @@ contract BlockSigma is StandardToken {
         
         emit Exercised(msg.sender);
         return result;
-    }
+    }    
 
     /**
     * @dev Writer delivers underlying tokens(call) or currency(put)
     */    
-    function deliver(address to) public returns (bool) {
-        bool result;
-        if (isPut) {
-            result = deliverPut(to);
-        } else {
-            result = deliverCall(to);
-        }
+    function deliver(address to) public onlyIssuer returns (bool) {
+        bool result = deliverInternal(to);
 
         totalSupply_ = totalSupply_.sub(exercises[to].amount);
         delete balances[to];
@@ -374,13 +353,9 @@ contract BlockSigma is StandardToken {
     function forceLiquidate() public returns (bool) {
         require(canLiquidate());
 
-        bool result;
-        if (isPut) {
-            result = forceLiquidatePut();
-        } else {
-            result = forceLiquidateCall();
-        }
+        bool result = forceLiquidateInternal();
 
+        totalSupply_ = totalSupply_.sub(balances[msg.sender]);
         delete balances[msg.sender];
         delete exercises[msg.sender];
 
@@ -408,30 +383,19 @@ contract BlockSigma is StandardToken {
     }    
 
     /**
-    * @dev Calculates minimum required reserve per contracts
-    */    
-    function getRequiredReserve() public view returns (uint256) {
-        uint256 zero = 0;
-        uint256 profit = 0;
-        if (isPut) {
-            profit = zero.max256(strike.sub(getUnderlyingPrice()));
-        } else {
-            profit = zero.max256(getUnderlyingPrice().sub(strike));
-        }
-
-        return minReserve.add(profit);
-    }
-
-    /**
     * @dev Tells if reserve is below requirement
     */    
     function isReserveLow() public view returns (bool) {
         return reserve < getRequiredReserve().mul(totalSupply_);
     }
 
+    function isExpired() public view returns (bool) {
+        return block.timestamp >= exp;
+    }    
+
     function canLiquidate() public view returns (bool) {
         ExerciseInfo storage exerciseInfo = exercises[msg.sender];
-        return isReserveLow() ||
+        return (balances[msg.sender] > 0 && isReserveLow()) ||
             (exerciseInfo.amount > 0 && exerciseInfo.timestamp < block.timestamp - EXERCISE_PERIOD);
     }
 
@@ -439,85 +403,100 @@ contract BlockSigma is StandardToken {
     * @dev Get price of the underlying token from Bancor
     */    
     function getUnderlyingPrice() public view returns (uint256) {
-        return tokenPrice; // For testing
+        // return tokenPrice;  // For testing
 
-        uint256 size = 1000000;
+        /*uint256 size = PRICE_PRECISION;
+        uint256 currencyToBtn = 221772577993378555;
+        uint256 btnToUnderlying = 79252400656351819;
+        return PRICE_PRECISION.mul(PRICE_PRECISION).div(btnToUnderlying); // For testing*/
+        
         BancorConverterStub currencyToBtnConverter = BancorConverterStub(currencyBancorConverter);
         uint256 currencyToBtn = currencyToBtnConverter.getReturn(currencyTokenAddress,
             BANCOR_TOKEN_ADDRESS,
-            size);
+            PRICE_PRECISION);
 
         BancorConverterStub btnToUnderlyingConverter = BancorConverterStub(underlyingBancorConverter);
         uint256 btnToUnderlying = btnToUnderlyingConverter.getReturn(BANCOR_TOKEN_ADDRESS,
             underlyingTokenAddress,
             currencyToBtn);
 
-        return size.mul(size).div(btnToUnderlying);        
+        return PRICE_PRECISION.mul(PRICE_PRECISION).div(btnToUnderlying);
     }
 
-    function setTokenPrice(uint256 _tokenPrice) public {
+    // TODO: remove, this is for testing
+    function setTokenPrice(uint256 _tokenPrice) onlyOwner public {
         tokenPrice = _tokenPrice;
-    }    
+    }
+
+    function setExpiration(uint256 _exp) onlyOwner public {
+        exp = _exp;
+    }
 
     /* Private */
-    function transferCurrencyToken(address from, address to, uint256 amount) private {
+    function transferCurrencyToken(address from, address to, uint256 amount) internal {
         TokenStub currencyToken = TokenStub(currencyTokenAddress);
-        currencyToken.transferFrom(from, to, amount);
+        if (from == address(this)) {
+            currencyToken.transfer(to, amount);
+        } else {
+            currencyToken.transferFrom(from, to, amount);
+        }        
     }
 
-    function transferUnderlyingToken(address from, address to, uint256 amount) private {
+    function transferUnderlyingToken(address from, address to, uint256 amount) internal {
         TokenStub underlyingToken = TokenStub(underlyingTokenAddress);
-        underlyingToken.transferFrom(from, to, amount);
-    }
-    
-    function exerciseCall() private returns (bool) {
-        require(block.timestamp < exp);
 
+        if (from == address(this)) {
+            underlyingToken.transfer(to, amount);
+        } else {
+            underlyingToken.transferFrom(from, to, amount);
+        }
+    }
+}
+
+// File: contracts/BlockSigmaCall.sol
+
+contract BlockSigmaCall is BlockSigmaBase {
+    
+    function BlockSigmaCall(address _underlyingTokenAddress, address _currencyTokenAddress,
+        uint256 _strike, uint256 _exp, uint256 _minReserve,
+        address _underlyingBancorConverter, address _currencyBancorConverter,
+        address _issuer) 
+        BlockSigmaBase(_underlyingTokenAddress, _currencyTokenAddress, _strike, _exp, _minReserve, 
+        _underlyingBancorConverter, _currencyBancorConverter, _issuer) public {
+
+    }
+
+    function getRequiredReserveInternal() internal view returns (uint256) {
+        uint256 liability = 0;
+        if (getUnderlyingPrice() > strike) {
+            liability = getUnderlyingPrice().sub(strike);
+        }     
+        return minReserve.add(liability);
+    }
+
+    function excerciseInternal() internal returns (bool) {
         // Buyer deposits currency to buy tokens at strike
         uint256 requiredFunds = balances[msg.sender].mul(strike);
-        transferCurrencyToken(msg.sender, this, requiredFunds);
-        return true;
-    }
-
-    function exercisePut() private returns (bool) {
-        require(block.timestamp < exp);
-
-        // Buyer deposits tokens to sell at strike
-        transferUnderlyingToken(msg.sender, this, balances[msg.sender]);
+        super.transferCurrencyToken(msg.sender, this, requiredFunds);
         return true;
     }
     
-    function deliverCall(address to) private returns (bool) {
+    function deliverInternal(address to) internal returns (bool) {        
         // Seller transfers promised tokens to buyer
-        transferUnderlyingToken(msg.sender, to, exercises[to].amount);
+        super.transferUnderlyingToken(msg.sender, to, exercises[to].amount);        
 
         // Reserve + payment for tokens is released to seller
-        uint256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
-        transferCurrencyToken(this, msg.sender, exercises[to].amount.mul(strike).add(releasedReserve));
+        uint256 releasedReserve = reserve.mul(exercises[to].amount).div(totalSupply_);
+        super.transferCurrencyToken(this, msg.sender, exercises[to].amount.mul(strike).add(releasedReserve));
         reserve = reserve.sub(releasedReserve);
   
         return true;
     }
 
-    function deliverPut(address to) private returns (bool) {
-        // Seller transfers payment for sold tokens to buyer
-        transferCurrencyToken(msg.sender, to, exercises[to].amount.mul(strike));
-
-        // Sold tokens are transferred to seller
-        transferUnderlyingToken(this, msg.sender, exercises[to].amount);
-
-        // Reserve is released to seller
-        uint256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
-        transferCurrencyToken(this, msg.sender, releasedReserve);
-        reserve = reserve.sub(releasedReserve);
-        
-        return true;
-    }    
-
-    function forceLiquidateCall() private returns (bool) {
+    function forceLiquidateInternal() internal returns (bool) {
         ExerciseInfo storage exerciseInfo = exercises[msg.sender];
         uint256 amountToSend;
-        uint256 releasedReserve = reserve.div(totalSupply_).mul(exerciseInfo.amount);
+        uint256 releasedReserve = reserve.mul(balances[msg.sender]).div(totalSupply_);
 
         if (exerciseInfo.amount > 0) {
             // If buyer deposited funds at exercise, we should release them in addition to reserve
@@ -527,30 +506,104 @@ contract BlockSigma is StandardToken {
         }
 
         // Transfer reserve to buyer     
-        transferCurrencyToken(this, msg.sender, amountToSend);
-        reserve = reserve.sub(releasedReserve);                
+        super.transferCurrencyToken(this, msg.sender, amountToSend);
+        reserve = reserve.sub(releasedReserve);
+
+        return true;
+    }
+}
+
+// File: contracts/BlockSigmaPut.sol
+
+contract BlockSigmaPut is BlockSigmaBase {
+    
+    function BlockSigmaPut(address _underlyingTokenAddress, address _currencyTokenAddress,
+        uint256 _strike, uint256 _exp, uint256 _minReserve,
+        address _underlyingBancorConverter, address _currencyBancorConverter,
+        address _issuer) 
+        BlockSigmaBase(_underlyingTokenAddress, _currencyTokenAddress, _strike, _exp, _minReserve, 
+        _underlyingBancorConverter, _currencyBancorConverter, _issuer) public {
+
     }
 
-    function forceLiquidatePut() private returns (bool) {
+    function getRequiredReserveInternal() internal view returns (uint256) {
+        uint256 liability = 0;
+        if (getUnderlyingPrice() < strike) {
+            liability = strike.sub(getUnderlyingPrice());
+        }        
+        return minReserve.add(liability);      
+    }
+
+    function excerciseInternal() internal returns (bool) {
+        require(block.timestamp < exp);
+
+        // Buyer deposits tokens to sell at strike
+        super.transferUnderlyingToken(msg.sender, this, balances[msg.sender]);
+        return true;
+    }
+    
+    function deliverInternal(address to) internal returns (bool) {
+        // Seller transfers payment for sold tokens to buyer
+        super.transferCurrencyToken(msg.sender, to, exercises[to].amount.mul(strike));
+
+        // Sold tokens are transferred to seller
+        super.transferUnderlyingToken(this, msg.sender, exercises[to].amount);
+
+        // Reserve is released to seller
+        uint256 releasedReserve = reserve.div(totalSupply_).mul(exercises[to].amount);
+        super.transferCurrencyToken(this, msg.sender, releasedReserve);
+        reserve = reserve.sub(releasedReserve);
+        
+        return true;
+    }
+
+    function forceLiquidateInternal() internal returns (bool) {
         ExerciseInfo storage exerciseInfo = exercises[msg.sender];
-        uint256 releasedReserve = reserve.div(totalSupply_).mul(exerciseInfo.amount);
+        uint256 releasedReserve = reserve.div(totalSupply_).mul(balances[msg.sender]);
 
         if (exerciseInfo.amount > 0) {
             // Return deposited tokens to buyer
-            transferUnderlyingToken(this, msg.sender, exerciseInfo.amount);
+            super.transferUnderlyingToken(this, msg.sender, exerciseInfo.amount);
         }
 
         // Transfer reserve to buyer
-        transferCurrencyToken(this, msg.sender, releasedReserve);
-        reserve = reserve.sub(releasedReserve);                
+        super.transferCurrencyToken(this, msg.sender, releasedReserve);
+        reserve = reserve.sub(releasedReserve);
+
+        return true;
     }
+}
+
+// File: zeppelin-solidity/contracts/math/Math.sol
+
+/**
+ * @title Math
+ * @dev Assorted math operations
+ */
+library Math {
+  function max64(uint64 a, uint64 b) internal pure returns (uint64) {
+    return a >= b ? a : b;
+  }
+
+  function min64(uint64 a, uint64 b) internal pure returns (uint64) {
+    return a < b ? a : b;
+  }
+
+  function max256(uint256 a, uint256 b) internal pure returns (uint256) {
+    return a >= b ? a : b;
+  }
+
+  function min256(uint256 a, uint256 b) internal pure returns (uint256) {
+    return a < b ? a : b;
+  }
 }
 
 // File: contracts/DAI.sol
 
 contract DAI is StandardToken {
   function DAI() public {
-    totalSupply_ = 1000000000;
+    totalSupply_ = 1000000000000000000000;//1000000000000000000000000000;
+    balances[msg.sender] = totalSupply_;
   }
 }
 
@@ -558,7 +611,8 @@ contract DAI is StandardToken {
 
 contract EOS is StandardToken {
   function EOS() public {
-    totalSupply_ = 1000000000;
+    totalSupply_ = 1000000000000000000000;//1000000000000000000000000000;
+    balances[msg.sender] = totalSupply_;
   }
 }
 
